@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>生日扭蛋機</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Huninn&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout：單欄置中 — 標題、扭蛋機（玻璃罩＋機身＋投幣口＋旋鈕＋出貨口）、保密內容卡；開場祝福、揭曉都是彈出卡片 */
+:root {
+  --bg: #FDF0F4;
+  --ink: #2A1630;
+  --muted: #7A5E72;
+  --machine: #E8344E;
+  --machine-dark: #B81F38;
+  --glass: #FFFFFF;
+  --paper: #FFFFFF;
+  --line: #EBCFD6;
+  --chute: #3A1F3F;
+  --focus: #13968A;
+  --c1: #F0506E; --c2: #FFC21A; --c3: #20B2A4; --c4: #7C5CE0; --c5: #FF8A3D;
+  --display: "Huninn", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --num: "Bungee", "Arial Black", Impact, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1A0F1E; --ink: #F8E9EF; --muted: #B99DB2; --machine: #D02A45; --machine-dark: #8E1429;
+    --glass: #3A2A40; --paper: #2A1A2F; --line: #43293F; --chute: #0E0711; --focus: #3CC7B8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1A0F1E; --ink: #F8E9EF; --muted: #B99DB2; --machine: #D02A45; --machine-dark: #8E1429;
+  --glass: #3A2A40; --paper: #2A1A2F; --line: #43293F; --chute: #0E0711; --focus: #3CC7B8;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.wrap { max-width: 560px; margin: 0 auto; display: grid; gap: 28px; }
+
+header { display: grid; gap: 6px; text-align: center; justify-items: center; position: relative; }
+.eyebrow { font-family: var(--num); font-size: 12px; letter-spacing: .14em; color: var(--machine); }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 8vw, 44px); line-height: 1.15; margin: 0; text-wrap: balance; }
+h1 .who { color: var(--machine); }
+.lede { margin: 0; color: var(--muted); max-width: 32em; }
+.sound {
+  position: absolute; top: -6px; right: 0; font: inherit; font-size: 13px; color: var(--muted);
+  background: var(--paper); border: 2px solid var(--line); border-radius: 999px; padding: 2px 12px; cursor: pointer;
+}
+.sound:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ---------- 扭蛋機 ---------- */
+.stage { display: grid; justify-items: center; gap: 16px; }
+.machine { width: min(320px, 100%); display: grid; justify-items: center; }
+.dome {
+  position: relative; width: 92%; aspect-ratio: 1; max-width: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--glass) 0 40%, color-mix(in srgb, var(--glass) 80%, var(--machine)) 100%);
+  border: 6px solid var(--ink); overflow: hidden; z-index: 1;
+}
+.dome .shine {
+  position: absolute; left: 16%; top: 12%; width: 22%; height: 34%; border-radius: 50%;
+  background: rgba(255,255,255,.55); transform: rotate(28deg); z-index: 3; pointer-events: none;
+}
+.neck { width: 46%; height: 22px; margin-top: -8px; background: var(--machine-dark); border: 6px solid var(--ink); border-top: 0; position: relative; z-index: 2; }
+.body {
+  position: relative; width: 100%; height: 190px; margin-top: -2px;
+  background: var(--machine); border: 6px solid var(--ink); border-radius: 18px 18px 26px 26px;
+  box-shadow: inset 0 -12px 0 var(--machine-dark);
+}
+.plate {
+  position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+  background: #FFF6D6; color: #2A1630; border: 3px solid var(--ink); border-radius: 8px;
+  font-family: var(--num); font-size: 13px; letter-spacing: .08em; padding: 2px 12px; white-space: nowrap;
+  user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.slot { position: absolute; left: 15%; top: 40px; width: 52px; height: 12px; border-radius: 6px; background: var(--chute); border: 3px solid var(--ink); transition: box-shadow .3s; }
+.slot.filled { box-shadow: 0 0 0 3px #FFC21A; }
+.knob {
+  position: absolute; left: 13%; top: 62px; width: 84px; height: 84px; border-radius: 50%;
+  background: #FFF6D6; border: 5px solid var(--ink); cursor: pointer; padding: 0;
+  box-shadow: 0 4px 0 var(--ink); transition: transform .26s cubic-bezier(.4,1.6,.5,1);
+}
+.knob .bar { position: absolute; left: 50%; top: 8px; bottom: 8px; width: 18px; transform: translateX(-50%); background: var(--machine); border: 4px solid var(--ink); border-radius: 9px; }
+.knob:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+.knob:disabled { cursor: default; }
+.chute {
+  position: absolute; right: 12%; top: 66px; width: 96px; height: 92px; border-radius: 16px 16px 10px 10px;
+  background: var(--chute); border: 5px solid var(--ink); overflow: hidden;
+  box-shadow: inset 0 10px 0 rgba(0,0,0,.35);
+}
+.chute .flap { position: absolute; left: 0; right: 0; top: 0; height: 18px; background: rgba(255,255,255,.12); }
+
+/* 扭蛋（上半有顏色、下半半透明白） */
+.cap { position: absolute; width: var(--s); height: var(--s); transform: rotate(var(--rot, 0deg)); }
+.cap .t, .cap .b { position: absolute; left: 0; right: 0; height: 50%; transition: transform .5s cubic-bezier(.3,1.5,.5,1); }
+.cap .t { top: 0; background: var(--c); border-radius: 999px 999px 0 0; border: 3px solid var(--ink); border-bottom: 0; box-shadow: inset -5px 4px 0 rgba(255,255,255,.35); }
+.cap .b { bottom: 0; background: rgba(255,255,255,.9); border-radius: 0 0 999px 999px; border: 3px solid var(--ink); }
+.cap .crack { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.cap .crack path { fill: none; stroke: #2A1630; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 80; stroke-dashoffset: 80; transition: stroke-dashoffset .25s; }
+.dome .cap { --s: 21%; z-index: 2; }
+.dome.shaking .cap { animation: jiggle .18s ease-in-out infinite alternate; animation-delay: var(--d); }
+@keyframes jiggle { from { transform: rotate(var(--rot)) translateY(0); } to { transform: rotate(calc(var(--rot) + 25deg)) translate(4px, -14px); } }
+
+.drop {
+  position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -26px 0 0 -32px;
+  border: 0; padding: 0; background: none; cursor: pointer; border-radius: 50%;
+  animation: fall .6s cubic-bezier(.3,1.6,.5,1);
+}
+.drop .cap { --s: 64px; left: 0; top: 0; }
+.drop:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.drop.wiggle { animation: fall .6s cubic-bezier(.3,1.6,.5,1), nudge 1.4s ease-in-out .8s infinite; }
+.drop.hit { animation: knock .32s ease; }
+.drop.c1 .crack path.p1 { stroke-dashoffset: 0; }
+.drop.c2 .crack path { stroke-dashoffset: 0; }
+.drop.open .crack { opacity: 0; }
+.drop.open .t { transform: translate(-18px, -26px) rotate(-38deg); }
+.drop.open .b { transform: translate(12px, 16px) rotate(22deg); }
+@keyframes fall { from { transform: translateY(-90px); } to { transform: none; } }
+@keyframes nudge { 0%,80%,100% { transform: none; } 85% { transform: rotate(-10deg); } 92% { transform: rotate(10deg); } }
+@keyframes knock { 0%,100% { transform: none; } 20% { transform: scale(.9) rotate(-14deg); } 50% { transform: scale(1.08) rotate(12deg); } 75% { transform: rotate(-6deg); } }
+
+.turn-row { display: grid; justify-items: center; gap: 10px; }
+.btn {
+  font: inherit; font-weight: 700; font-size: 16px; padding: 12px 26px; border-radius: 14px; cursor: pointer;
+  border: 3px solid var(--ink); background: #FFC21A; color: #2A1630;
+  box-shadow: 0 4px 0 var(--ink); transition: transform .08s, box-shadow .08s;
+}
+.btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 var(--ink); }
+.btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.alt { background: var(--machine); color: #FFF6D6; }
+.btn.ghost { background: var(--paper); color: var(--ink); font-size: 15px; padding: 10px 18px; }
+.hint { margin: 0; color: var(--muted); min-height: 1.6em; text-align: center; }
+
+/* ---------- 扭蛋內容卡（保密）---------- */
+.card { background: var(--paper); border: 2px solid var(--line); border-radius: 18px; padding: 18px; display: grid; gap: 12px; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.card h2 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 0; }
+.card .note { color: var(--muted); font-size: 13px; }
+.lineup { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.lineup li { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: center; }
+.dot { width: 22px; height: 22px; border-radius: 50%; background: var(--c); border: 3px solid var(--ink); }
+.lineup .name { min-width: 0; overflow-wrap: anywhere; font-weight: 500; display: grid; }
+.lineup .from { font-size: 13px; color: var(--muted); font-weight: 400; }
+.lineup .secret { letter-spacing: .3em; color: var(--muted); font-family: var(--display); }
+.lineup .hit { font-family: var(--display); font-size: 13px; color: #FFF6D6; background: var(--machine); border-radius: 999px; padding: 1px 10px; white-space: nowrap; }
+.lineup li.got .name > span:first-child { font-weight: 700; color: var(--machine); }
+.lineup li.flip { animation: flip .5s ease; }
+@keyframes flip { 0% { transform: rotateX(0); } 50% { transform: rotateX(90deg); } 100% { transform: rotateX(0); } }
+
+/* ---------- 彈出卡片 ---------- */
+.overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(26,10,30,.6);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.reveal {
+  width: min(400px, 100%); max-height: 92vh; overflow-y: auto; background: var(--paper); color: var(--ink); border-radius: 22px;
+  border: 4px solid var(--ink); box-shadow: 0 8px 0 var(--ink); text-align: center;
+  animation: pop .5s cubic-bezier(.2,1.6,.4,1);
+}
+.reveal .band { background: var(--c, var(--machine)); height: 18px; border-bottom: 4px solid var(--ink); }
+.reveal .in { padding: 22px 22px 24px; display: grid; gap: 10px; justify-items: center; }
+.reveal .lab { font-family: var(--num); color: var(--machine); letter-spacing: .1em; font-size: 13px; }
+.reveal .big { font-family: var(--display); font-size: clamp(28px, 9vw, 38px); line-height: 1.25; text-wrap: balance; overflow-wrap: anywhere; }
+.reveal .sub { color: var(--muted); margin: 0; }
+.reveal .msg { margin: 0; white-space: pre-line; text-align: left; line-height: 1.8; width: 100%; overflow-wrap: anywhere; }
+.reveal .sig { margin: 0; width: 100%; text-align: right; font-family: var(--display); font-size: 17px; }
+.giftnote { width: 100%; text-align: left; background: var(--bg); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; }
+.giftnote .who { font-size: 13px; color: var(--muted); }
+.giftnote .say { white-space: pre-line; overflow-wrap: anywhere; }
+@keyframes pop { from { transform: scale(.5) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.coin {
+  width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 35% 30%, #FFF3B0 0 18%, #FFC21A 45%, #E09A00 100%);
+  border: 4px solid var(--ink); box-shadow: inset 0 0 0 5px rgba(255,255,255,.35), 0 4px 0 var(--ink);
+  font-family: var(--display); font-size: 28px; color: #2A1630;
+}
+.coin.spin { animation: coinspin 1.6s ease-in-out infinite; }
+@keyframes coinspin { 0%,60%,100% { transform: rotateY(0); } 80% { transform: rotateY(180deg); } }
+.flying { position: fixed; z-index: 70; width: 44px; height: 44px; font-size: 18px; margin: 0; pointer-events: none;
+  transition: transform .8s cubic-bezier(.5,-0.3,.6,1), opacity .2s .75s; }
+
+/* 主辦人工具（只有網頁擁有者看得到） */
+#host { z-index: 55; }
+.hostbox { width: min(420px, 100%); background: var(--paper); color: var(--ink); border: 3px solid var(--ink); border-radius: 18px; padding: 18px; display: grid; gap: 12px; }
+.hostbox h2 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 0; }
+.hostbox p { margin: 0; color: var(--muted); font-size: 13px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 60; }
+
+@media (prefers-reduced-motion: reduce) {
+  .knob, .cap .t, .cap .b, .flying { transition: none; }
+  .drop, .drop.wiggle, .drop.hit, .reveal, .dome.shaking .cap, .lineup li.flip, .coin.spin { animation: none; }
+}
+</style>
+
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0} [hidden]{display:none!important}</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <button class="sound" id="soundBtn" type="button" aria-pressed="true">音效：開</button>
+    <div class="eyebrow">HAPPY BIRTHDAY GACHA</div>
+    <h1><span class="who" id="titleName">壽星</span> 的生日扭蛋機</h1>
+    <p class="lede">轉一下旋鈕，掉出一顆扭蛋，打開就是你的生日禮物。</p>
+  </header>
+
+  <div class="stage">
+    <div class="machine">
+      <div class="dome" id="dome"><div class="shine"></div></div>
+      <div class="neck"></div>
+      <div class="body">
+        <div class="plate" id="plate">BIRTHDAY</div>
+        <div class="slot" id="slot"></div>
+        <button class="knob" id="knob" type="button" aria-label="轉動旋鈕扭一顆"><span class="bar"></span></button>
+        <div class="chute" id="chute"><div class="flap"></div></div>
+      </div>
+    </div>
+    <div class="turn-row">
+      <button class="btn" id="turnBtn" type="button">轉一下！</button>
+      <p class="hint" id="hint" role="status"></p>
+      <button class="btn alt" id="revealAllBtn" type="button" hidden>公布全部獎品</button>
+    </div>
+  </div>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>這台扭蛋機裡有</h2>
+      <span class="note" id="lineupNote">5 種禮物，抽完再公布</span>
+    </div>
+    <ul class="lineup" id="lineup"></ul>
+  </section>
+</div>
+
+<!-- 開場祝福 -->
+<div class="overlay" id="welcome" hidden>
+  <div class="reveal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+    <div class="band"></div>
+    <div class="in">
+      <div class="lab">HAPPY BIRTHDAY</div>
+      <div class="big" id="welcomeTitle">生日快樂！</div>
+      <p class="msg" id="welcomeMsg"></p>
+      <p class="sig" id="welcomeSig"></p>
+      <div class="coin spin" aria-hidden="true">扭</div>
+      <p class="sub">這是你的扭蛋幣，只能扭一次喔。</p>
+      <button class="btn" id="claimBtn" type="button">領取扭蛋幣</button>
+    </div>
+  </div>
+</div>
+
+<!-- 揭曉 -->
+<div class="overlay" id="overlay" hidden>
+  <div class="reveal" role="dialog" aria-modal="true" aria-labelledby="revealGift" id="revealCard">
+    <div class="band"></div>
+    <div class="in">
+      <div class="lab">YOU GOT</div>
+      <div class="big" id="revealGift">禮物</div>
+      <div class="giftnote" id="giftNote" hidden>
+        <span class="who" id="noteWho"></span>
+        <span class="say" id="noteSay"></span>
+      </div>
+      <button class="btn" id="closeBtn" type="button">收下了！</button>
+    </div>
+  </div>
+</div>
+
+<!-- 主辦人工具：網址加 #host 打開才會出現 -->
+<div class="overlay" id="host" hidden>
+  <div class="hostbox" role="dialog" aria-modal="true" aria-labelledby="hostTitle">
+    <h2 id="hostTitle">主辦人工具</h2>
+    <p>只有用 #host 網址打開的人看得到這個視窗。禮物內容寫在檔案最下方的 CONFIG 裡。「重新開始」只會清掉這台裝置上的抽獎結果。</p>
+    <div class="row">
+      <button class="btn ghost" id="simBtn" type="button">模擬扭 1000 次</button>
+      <button class="btn ghost" id="resetBtn" type="button">重新開始</button>
+    </div>
+    <p id="simOut"></p>
+    <button class="btn" id="hostClose" type="button" style="justify-self:start">關閉</button>
+  </div>
+</div>
+<canvas id="confetti"></canvas>
+
+<script>
+/* ================================================================
+   內容設定：壽星名字、開場祝福、你的署名、5 份禮物（name 禮物、note 抽到時的一句話）
+   ================================================================ */
+const CONFIG = {
+  name: '陳子晴',
+  message: '呦～生日快樂喔🎂\n對於禮物有想法但是決定不出來要送哪個，就交給你自己抽吧。\n抽完拿給我看跟我換禮物喔，我準備一下過幾天拿給你。',
+  sender: '李岱諭',   // 開場祝福的署名，揭曉時也會顯示「李岱諭 想對你說」
+  gifts: [            // note 是抽到這份禮物時想說的話，可以留空 ''
+    { name: '藍牙耳機', note: '你的AirPods壞很久了 只帶一隻耳朵很沒fu' },
+    { name: '電競耳機', note: '之前逛nova的時候你有說在看，有一款看到覺得蠻適合你的' },
+    { name: '賴打',     note: '🚬' },
+    { name: '樂高',     note: '就對啊 因為你喜歡\n樂高那麼多 應該不會送到重複吧\n如果你抽中再跟你確認一下' },
+    { name: '選項自選', note: '就給你選啦 這根本大獎 牛逼逼' }
+  ]
+};
+
+(() => {
+  const KEY = 'birthday-gacha-v4';
+  const COLORS = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)'];
+  const RAW = ['#F0506E', '#FFC21A', '#20B2A4', '#7C5CE0', '#FF8A3D'];
+  const N = CONFIG.gifts.length;
+  const $ = id => document.getElementById(id);
+  const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const wait = ms => new Promise(r => setTimeout(r, reduced() ? 0 : ms));
+  const rand = n => { const r = new Uint32Array(1); crypto.getRandomValues(r); return r[0] % n; };
+  const G = i => CONFIG.gifts[i];
+
+  // ---------- 狀態：只記這台裝置的抽獎進度 ----------
+  let state = { coin: false, drawn: null, revealed: false, sound: true };
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === 'object') state = Object.assign(state, s); } catch (e) {}
+  if (state.drawn !== null && !(state.drawn >= 0 && state.drawn < N)) state.drawn = null;
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+
+  // ---------- 音效（全部用 Web Audio 即時合成）----------
+  let ac = null;
+  function A() {
+    if (!state.sound) return null;
+    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); return ac; } catch (e) { return null; }
+  }
+  function noise(dur, freq, type, gain, at = 0) {
+    const a = A(); if (!a) return;
+    const len = Math.max(1, a.sampleRate * dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    f.type = type; f.frequency.value = freq; g.gain.value = gain;
+    s.buffer = buf; s.connect(f).connect(g).connect(a.destination); s.start(a.currentTime + at);
+  }
+  function tone(freq, dur, type = 'sine', gain = .25, at = 0, slideTo) {
+    const a = A(); if (!a) return;
+    const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + at;
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+  }
+  const sfx = {
+    click: () => noise(.03, 2600, 'bandpass', .6),
+    clink: () => { tone(1900, .25, 'triangle', .22); tone(2850, .35, 'sine', .14, .06); },
+    thunk: () => { tone(200, .25, 'sine', .45, 0, 60); noise(.06, 500, 'lowpass', .5); },
+    knock: () => { tone(420, .08, 'square', .12, 0, 260); noise(.04, 1800, 'bandpass', .5); },
+    crack: () => { noise(.12, 3200, 'highpass', .7); tone(700, .1, 'triangle', .1, 0, 300); },
+    pop:   () => { noise(.18, 900, 'lowpass', .9); tone(320, .18, 'sine', .3, 0, 900); },
+    fanfare: () => [523, 659, 784, 1047].forEach((f, k) => tone(f, k === 3 ? .6 : .18, 'triangle', .2, k * .12)),
+    flip: () => tone(880, .08, 'triangle', .12, 0, 1320),
+    ding: () => [784, 1175].forEach((f, k) => tone(f, .5, 'sine', .2, k * .1))
+  };
+  function syncSoundBtn() { $('soundBtn').textContent = '音效：' + (state.sound ? '開' : '關'); $('soundBtn').setAttribute('aria-pressed', state.sound); }
+  $('soundBtn').addEventListener('click', () => { state.sound = !state.sound; save(); syncSoundBtn(); if (state.sound) sfx.click(); });
+
+  // ---------- 玻璃罩裡的扭蛋 ----------
+  const SPOTS = [
+    [8,66,-20],[27,70,15],[47,71,-8],[66,66,30],[18,52,40],[37,55,-30],[57,53,10],[73,48,-15],
+    [12,38,25],[30,40,-5],[49,38,35],[66,33,-25],[24,25,10],[43,23,-35]
+  ];
+  let domeCaps = [];
+  function capEl(colorIdx) {
+    const c = document.createElement('div');
+    c.className = 'cap';
+    c.style.setProperty('--c', COLORS[colorIdx % 5]);
+    c.dataset.color = colorIdx;
+    c.innerHTML = '<div class="t"></div><div class="b"></div>' +
+      '<svg class="crack" viewBox="0 0 64 64" aria-hidden="true"><path class="p1" d="M6 32 L16 26 L22 34 L30 27"/><path class="p2" d="M30 27 L38 35 L46 26 L52 33 L58 30"/></svg>';
+    return c;
+  }
+  function fillDome() {
+    const dome = $('dome');
+    dome.querySelectorAll('.cap').forEach(c => c.remove());
+    domeCaps = SPOTS.map(([x, y, r], k) => {
+      const c = capEl(k % N);
+      c.style.left = x + '%'; c.style.top = y + '%';
+      c.style.setProperty('--rot', r + 'deg');
+      c.style.setProperty('--d', (k * 37 % 180) + 'ms');
+      dome.appendChild(c);
+      return c;
+    });
+  }
+
+  // ---------- 開場祝福、領扭蛋幣 ----------
+  function showWelcome() {
+    $('welcomeTitle').textContent = `${CONFIG.name}，生日快樂！`;
+    $('welcomeMsg').textContent = CONFIG.message;
+    $('welcomeSig').textContent = CONFIG.sender ? `— ${CONFIG.sender}` : '';
+    $('welcome').hidden = false;
+    $('claimBtn').focus();
+  }
+  $('claimBtn').addEventListener('click', async () => {
+    sfx.clink();
+    const from = document.querySelector('#welcome .coin').getBoundingClientRect();
+    $('welcome').hidden = true;
+    state.coin = true; save();
+    $('slot').scrollIntoView({ block: 'center', behavior: 'auto' });
+    const to = $('slot').getBoundingClientRect();
+    const c = document.createElement('div');
+    c.className = 'coin flying'; c.textContent = '扭';
+    c.style.left = (from.left + from.width / 2 - 22) + 'px';
+    c.style.top = (from.top + from.height / 2 - 22) + 'px';
+    document.body.appendChild(c);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+      const dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+      c.style.transform = `translate(${dx}px, ${dy}px) scale(.6) rotate(540deg)`;
+      c.style.opacity = '0';
+    }));
+    await wait(820);
+    c.remove(); sfx.clink(); render();
+    $('turnBtn').focus({ preventScroll: true });
+  });
+
+  // ---------- 轉旋鈕 ----------
+  let angle = 0, busy = false, current = null, knocks = 0;
+  async function turn() {
+    if (busy || state.drawn !== null) return;
+    if (!state.coin) { showWelcome(); return; }
+    if (current !== null) { setHint('先打開出貨口的那顆扭蛋喔'); $('chute').querySelector('.drop')?.focus(); return; }
+    busy = true;
+    $('turnBtn').disabled = true; $('knob').disabled = true;
+    $('slot').classList.remove('filled');
+    setHint('喀、喀、喀……');
+    $('dome').classList.add('shaking');
+    for (let k = 0; k < 4; k++) { angle += 90; $('knob').style.transform = `rotate(${angle}deg)`; sfx.click(); await wait(260); }
+    const pick = rand(N); // 每份禮物機率相同（5 份各 20%）
+    $('dome').classList.remove('shaking');
+    const idx = domeCaps.findIndex(c => c.isConnected && +c.dataset.color === pick);
+    if (idx > -1) domeCaps[idx].remove();
+    dropCapsule(pick);
+    busy = false;
+  }
+
+  function dropCapsule(i) {
+    current = i; knocks = 0;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'drop wiggle';
+    b.setAttribute('aria-label', '敲開扭蛋');
+    b.appendChild(capEl(i));
+    b.addEventListener('click', () => knock(b));
+    $('chute').appendChild(b);
+    setTimeout(sfx.thunk, reduced() ? 0 : 380);
+    setHint('掉出來了！敲三下把它打開');
+    b.focus({ preventScroll: true });
+  }
+
+  // 敲三下才會開：第一下出現裂痕、第二下裂開、第三下打開
+  function knock(b) {
+    if (b.classList.contains('open')) return;
+    knocks++;
+    b.classList.remove('wiggle', 'hit'); void b.offsetWidth; b.classList.add('hit');
+    if (knocks === 1) { b.classList.add('c1'); sfx.knock(); setHint('裂開了一點……再敲兩下！'); }
+    else if (knocks === 2) { b.classList.add('c2'); sfx.crack(); setHint('快破了！最後一下！'); }
+    else {
+      b.classList.add('open'); sfx.pop();
+      state.drawn = current; save();
+      setTimeout(() => showReveal(current), reduced() ? 0 : 480);
+    }
+  }
+
+  function setHint(t) { $('hint').textContent = t; }
+
+  // ---------- 揭曉自己抽到的 ----------
+  function showReveal(i) {
+    const g = G(i);
+    $('revealCard').style.setProperty('--c', COLORS[i % 5]);
+    $('revealGift').textContent = g.name;
+    const hasNote = (g.note || '').trim();
+    $('giftNote').hidden = !hasNote;
+    $('noteWho').textContent = `${CONFIG.sender} 想對你說`;
+    $('noteSay').textContent = g.note || '';
+    $('overlay').hidden = false;
+    $('closeBtn').focus();
+    sfx.fanfare();
+    confetti(RAW[i % 5]);
+  }
+  function closeReveal() {
+    $('overlay').hidden = true;
+    $('chute').querySelector('.drop')?.remove();
+    current = null;
+    render();
+    if (!$('revealAllBtn').hidden) $('revealAllBtn').focus();
+  }
+  $('closeBtn').addEventListener('click', closeReveal);
+  $('overlay').addEventListener('click', e => { if (e.target === $('overlay')) closeReveal(); });
+  $('turnBtn').addEventListener('click', turn);
+  $('knob').addEventListener('click', turn);
+
+  // ---------- 公布全部獎品：其他先一個個翻開，抽中的最後翻 ----------
+  let revealing = false;
+  $('revealAllBtn').addEventListener('click', async () => {
+    if (revealing) return;
+    revealing = true;
+    $('revealAllBtn').hidden = true;
+    $('lineup').scrollIntoView({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' });
+    $('lineupNote').textContent = '公布中……';
+    await wait(500);
+    const order = [...Array(N).keys()].filter(i => i !== state.drawn).concat(state.drawn);
+    for (const i of order) {
+      const li = $('lineup').children[i];
+      li.classList.remove('flip'); void li.offsetWidth; li.classList.add('flip');
+      await wait(250);
+      fillRow(li, i, true);
+      i === state.drawn ? sfx.ding() : sfx.flip();
+      await wait(i === state.drawn ? 300 : 550);
+    }
+    state.revealed = true; save();
+    revealing = false;
+    render();
+    confetti(RAW[state.drawn % 5]);
+  });
+
+  // ---------- 畫面 ----------
+  function fillRow(li, i, open) {
+    li.innerHTML = '';
+    const dot = document.createElement('span'); dot.className = 'dot'; dot.style.setProperty('--c', COLORS[i % 5]);
+    const name = document.createElement('span'); name.className = 'name';
+    const tag = document.createElement('span');
+    li.classList.remove('got');
+    if (open) {
+      const n = document.createElement('span'); n.textContent = G(i).name;
+      name.append(n);
+      if (i === state.drawn) { li.classList.add('got'); tag.className = 'hit'; tag.textContent = '你抽中的'; }
+    } else {
+      name.innerHTML = '<span class="secret">？？？</span>';
+    }
+    li.append(dot, name, tag);
+  }
+  function render() {
+    $('titleName').textContent = CONFIG.name;
+    const done = state.drawn !== null;
+    $('turnBtn').disabled = done; $('knob').disabled = done;
+    $('turnBtn').textContent = done ? '已經扭過了' : state.coin ? '轉一下！' : '先領取扭蛋幣';
+    $('slot').classList.toggle('filled', state.coin && !done && current === null);
+    $('revealAllBtn').hidden = !done || state.revealed || revealing;
+    setHint(!done ? (state.coin ? '扭蛋幣已投入，轉旋鈕吧！' : '先領取扭蛋幣才能扭')
+      : state.revealed ? `你抽到的是「${G(state.drawn).name}」，生日快樂！`
+      : `你抽到的是「${G(state.drawn).name}」！想知道其他還有什麼嗎？`);
+    $('lineupNote').textContent = state.revealed ? `${N} 種禮物，已公布` : `${N} 種禮物，抽完再公布`;
+    if (!revealing) {
+      const ul = $('lineup'); ul.innerHTML = '';
+      for (let i = 0; i < N; i++) { const li = document.createElement('li'); fillRow(li, i, state.revealed); ul.appendChild(li); }
+    }
+  }
+
+  // ---------- 主辦人工具：只有網頁擁有者打得開 ----------
+  // 獨立版：網址加上 #host 打開過一次，才會解鎖主辦人工具（壽星不知道這個網址就打不開）
+  let isOwner = location.hash === '#host';
+  if (isOwner) setTimeout(openHost, 0);
+  function openHost() { if (!isOwner) return; $('host').hidden = false; $('simBtn').focus(); }
+  function closeHost() { $('host').hidden = true; }
+  let taps = [];
+  $('plate').addEventListener('click', () => {
+    const t = Date.now();
+    taps = taps.filter(x => t - x < 2000); taps.push(t);
+    if (taps.length >= 5) { taps = []; openHost(); }
+  });
+  addEventListener('hashchange', () => { if (location.hash === '#host') { isOwner = true; openHost(); } });
+  $('hostClose').addEventListener('click', closeHost);
+  $('simBtn').addEventListener('click', () => {
+    const n = Array(N).fill(0);
+    for (let k = 0; k < 1000; k++) n[rand(N)]++;   // 跟真的扭蛋用同一個亂數函式
+    $('simOut').textContent = '模擬結果：' + n.map((c, i) => `${G(i).name} ${c} 次`).join('、');
+  });
+  $('resetBtn').addEventListener('click', () => {
+    state.coin = false; state.drawn = null; state.revealed = false; current = null; save();
+    $('chute').querySelector('.drop')?.remove();
+    closeHost(); fillDome(); render(); showWelcome();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!$('host').hidden) closeHost();
+    else if (!$('overlay').hidden) closeReveal();
+  });
+
+  // ---------- 彩帶 ----------
+  const cv = $('confetti'), ctx = cv.getContext('2d');
+  let parts = [], raf = 0;
+  function confetti(main) {
+    if (reduced()) return;
+    const dpr = devicePixelRatio || 1;
+    cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cols = [main, main, ...RAW];
+    for (let k = 0; k < 150; k++) parts.push({
+      x: innerWidth / 2, y: innerHeight * .4, vx: (Math.random() - .5) * 15, vy: -Math.random() * 13 - 3,
+      w: 6 + Math.random() * 6, h: 4 + Math.random() * 4, r: Math.random() * 6, vr: (Math.random() - .5) * .4,
+      c: cols[k % cols.length], life: 0
+    });
+    if (!raf) tick();
+  }
+  function tick() {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    parts = parts.filter(p => p.y < innerHeight + 20 && p.life < 240);
+    parts.forEach(p => {
+      p.vy += .32; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life++;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+    });
+    raf = parts.length ? requestAnimationFrame(tick) : 0;
+  }
+
+  syncSoundBtn(); fillDome(); render();
+  if (!state.coin && state.drawn === null) showWelcome();
+})();
+</script>
+
+</body>
+</html>
