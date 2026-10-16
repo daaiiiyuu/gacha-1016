@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>生日扭蛋機</title>
+<title>生日扭蛋</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -295,7 +295,7 @@ h1 .who { color: var(--machine); }
    ================================================================ */
 const CONFIG = {
   name: '陳子晴',
-  message: '呦～生日快樂喔🎂\n對於禮物有想法但是決定不出來要送哪個，就交給你自己抽吧。\n抽完拿給我看跟我換禮物喔，我準備一下過幾天拿給你。',
+  message: '生日快樂喔🎂\n對於禮物有想法但是決定不出來要送哪個\n就交給你自己抽吧\n抽完拿給我看跟我換禮物喔\n我準備一下過幾天拿給你',
   sender: '李岱諭',   // 開場祝福的署名，揭曉時也會顯示「李岱諭 想對你說」
   gifts: [            // note 是抽到這份禮物時想說的話，可以留空 ''
     { name: '藍牙耳機', note: '你的AirPods壞很久了 只帶一隻耳朵很沒fu' },
@@ -448,7 +448,7 @@ const CONFIG = {
     b.addEventListener('click', () => knock(b));
     $('chute').appendChild(b);
     setTimeout(sfx.thunk, reduced() ? 0 : 380);
-    setHint('掉出來了！敲三下把它打開');
+    setHint('出來了！敲三下把它打開');
     b.focus({ preventScroll: true });
   }
 
