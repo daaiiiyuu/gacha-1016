@@ -152,6 +152,9 @@ h1 .who { color: var(--machine); }
 .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--c); border: 3px solid var(--ink); }
 .lineup .name { min-width: 0; overflow-wrap: anywhere; font-weight: 500; display: grid; }
 .lineup .from { font-size: 13px; color: var(--muted); font-weight: 400; }
+.lineup .say { font-size: 13px; color: var(--muted); font-weight: 400; white-space: pre-line; line-height: 1.5; margin-top: 2px; }
+.lineup li { align-items: start; }
+.lineup .dot, .lineup .hit { margin-top: 2px; }
 .lineup .secret { letter-spacing: .3em; color: var(--muted); font-family: var(--display); }
 .lineup .hit { font-family: var(--display); font-size: 13px; color: #FFF6D6; background: var(--machine); border-radius: 999px; padding: 1px 10px; white-space: nowrap; }
 .lineup li.got .name > span:first-child { font-weight: 700; color: var(--machine); }
@@ -528,6 +531,7 @@ const CONFIG = {
     if (open) {
       const n = document.createElement('span'); n.textContent = G(i).name;
       name.append(n);
+      if ((G(i).note || '').trim()) { const s = document.createElement('span'); s.className = 'say'; s.textContent = G(i).note; name.append(s); }
       if (i === state.drawn) { li.classList.add('got'); tag.className = 'hit'; tag.textContent = '你抽中的'; }
     } else {
       name.innerHTML = '<span class="secret">？？？</span>';
