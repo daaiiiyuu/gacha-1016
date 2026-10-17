@@ -88,7 +88,7 @@ h1 .who { color: var(--machine); }
 .knob {
   position: absolute; left: 13%; top: 62px; width: 84px; height: 84px; border-radius: 50%;
   background: #FFF6D6; border: 5px solid var(--ink); cursor: pointer; padding: 0;
-  box-shadow: 0 4px 0 var(--ink); transition: transform .2s cubic-bezier(.4,1.6,.5,1);
+  box-shadow: 0 4px 0 var(--ink); transition: transform .45s cubic-bezier(.4,1.5,.5,1);
 }
 .knob .bar { position: absolute; left: 50%; top: 8px; bottom: 8px; width: 18px; transform: translateX(-50%); background: var(--machine); border: 4px solid var(--ink); border-radius: 9px; }
 .knob:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
@@ -480,11 +480,12 @@ const CONFIG = {
     $('slot').classList.remove('filled');
     setHint('喀、喀、喀……');
     $('dome').classList.add('shaking');
-    // 轉 2 圈（8 格），越轉越慢，大約 3 秒；想更久就把 8 改大，或把 GAPS 裡的數字調大（單位：毫秒）
-    const GAPS = [200, 220, 240, 270, 310, 360, 420, 500];
+    // 轉三下（每下 120°，剛好轉一圈）；GAPS 是每一下之間停多久（毫秒），數字調大就更慢
+    const GAPS = [650, 700, 800];
+    const HINTS = ['喀……', '喀、喀……', '喀、喀、喀……'];
     for (let k = 0; k < GAPS.length; k++) {
-      angle += 90; $('knob').style.transform = `rotate(${angle}deg)`; sfx.click();
-      if (k === 3) setHint('喀、喀、喀……快出來了');
+      angle += 120; $('knob').style.transform = `rotate(${angle}deg)`; sfx.click();
+      setHint(HINTS[k] || '喀……');
       await wait(GAPS[k]);
     }
     $('dome').classList.remove('shaking');
